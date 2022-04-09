@@ -1,9 +1,12 @@
+import re
 import cv2
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import os
 import time
 import open3d as o3d
+
 
 def main():
     # MiDaS v3 - Large     (highest accuracy, slowest inference speed)
@@ -24,16 +27,18 @@ def main():
     else:
         transform = midas_transforms.small_transform
 
-    # Read all images in a folder
-    path = "./images"
+    # define a video capture object
+    vid = cv2.VideoCapture(0)
 
-    for filename in os.listdir(path):
-        if filename.endswith(".png"):
+    while(True):
+        
+        start_time = time.time()
+        
+        ret, frame = vid.read()
 
-            start_time = time.time()
+        if ret:
 
-            input_image = cv2.cvtColor(cv2.imread(
-                os.path.join(path, filename)), cv2.COLOR_BGR2RGB)
+            input_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             input_batch = transform(input_image).to(device)
 
@@ -51,9 +56,25 @@ def main():
 
             print("Time taken: ", time.time() - start_time)
 
-            plt.subplot(121), plt.imshow(input_image)
-            plt.subplot(122), plt.imshow(output_image)
-            plt.show()
+            # plt.subplot(121), plt.imshow(input_image)
+            # plt.subplot(122), plt.imshow(output_image)
+            # plt.show()
+
+            # Display the resulting frame and the output image
+            cv2.imshow('frame',frame)
+            cv2.imshow('output_image', ((output_image - np.min(output_image)) / (np.max(output_image) - np.min(output_image)) * 255).astype(np.uint8))
+
+            
+            # the 'q' button is set as the
+            # quitting button you may use any
+            # desired button of your choice
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            
+    # After the loop release the cap object
+    vid.release()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
