@@ -7,8 +7,6 @@ import torch
 import open3d as o3d
 
 
-
-
 def main():
 
     # Configure depth and color streams
@@ -25,19 +23,24 @@ def main():
     depth_scale = depth_sensor.get_depth_scale()
     color_intrin = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
 
+    # create camera matrix
     intrinsic = o3d.camera.PinholeCameraIntrinsic(color_intrin.width, color_intrin.height, color_intrin.fx, color_intrin.fy, color_intrin.ppx, color_intrin.ppy)
+
+    # pointcloud object
+    pc = rs.pointcloud()
 
     # MiDaS v3 - Large     (highest accuracy, slowest inference speed)
     model_type = "DPT_Large"
     # model_type = "DPT_Hybrid"   # MiDaS v3 - Hybrid    (medium accuracy, medium inference speed)
     # model_type = "MiDaS_small"  # MiDaS v2.1 - Small   (lowest accuracy, highest inference speed)
 
+    # load model
     midas = torch.hub.load("intel-isl/MiDaS", model_type)
-    device = torch.device(
-        "cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     midas.to(device)
     midas.eval()
 
+    # load transformation
     midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
 
 
@@ -92,9 +95,24 @@ def main():
             depth_o3d = o3d.geometry.Image(output_image)
             rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(image_o3d, depth_o3d, convert_rgb_to_intensity=False)
 
-            pc = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
+            pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
 
-            o3d.visualization.draw_geometries([pc],
+            o3d.visualization.draw_geometries([pcd],
+                                    zoom=0.7,
+                                    front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
+                                    lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],
+                                    up=[0.021547212598669211, -0.99665598837361413, 0.078819784751307076],
+                                    width = 1080,
+                                    height = 720)
+
+
+            image_o3d = o3d.geometry.Image(input_image)
+            depth_o3d = o3d.geometry.Image(depth_image)
+            rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(image_o3d, depth_o3d, convert_rgb_to_intensity=False)
+
+            pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
+            
+            o3d.visualization.draw_geometries([pcd],
                                     zoom=0.7,
                                     front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
                                     lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],
