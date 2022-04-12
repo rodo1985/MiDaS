@@ -28,7 +28,7 @@ def main():
     path = "./images"
 
     for filename in os.listdir(path):
-        if filename.endswith(".png"):
+        if filename.endswith(".bmp"):
 
             start_time = time.time()
 
