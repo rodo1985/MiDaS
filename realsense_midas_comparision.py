@@ -39,9 +39,15 @@ def main():
     depth_sensor = profile.get_device().first_depth_sensor()
     depth_scale = depth_sensor.get_depth_scale()
     color_intrin = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
+    detph_intrin = profile.get_stream(rs.stream.depth).as_video_stream_profile().get_intrinsics()
+    
 
     # create camera matrix
-    intrinsic = o3d.camera.PinholeCameraIntrinsic(color_intrin.width, color_intrin.height, color_intrin.fx, color_intrin.fy, color_intrin.ppx, color_intrin.ppy)
+    color_intrinsic = o3d.camera.PinholeCameraIntrinsic(color_intrin.width, color_intrin.height, color_intrin.fx, color_intrin.fy, color_intrin.ppx, color_intrin.ppy)
+    depth_intrinsic = o3d.camera.PinholeCameraIntrinsic(detph_intrin.width, detph_intrin.height, detph_intrin.fx, detph_intrin.fy, detph_intrin.ppx, detph_intrin.ppy)
+
+    align_to = rs.stream.color
+    align = rs.align(align_to)
 
     # pointcloud object
     pc = rs.pointcloud()
@@ -71,8 +77,15 @@ def main():
 
             # Wait for a coherent pair of frames: depth and color
             frames = pipeline.wait_for_frames()
-            depth_frame = frames.get_depth_frame()
-            color_frame = frames.get_color_frame()
+
+            # Align the depth frame to color frame
+            aligned_frames = align.process(frames)
+            
+            # get aligned frames
+            depth_frame = aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
+
+            
             if not depth_frame or not color_frame:
                 continue
 
@@ -99,31 +112,34 @@ def main():
 
             output_image = prediction.cpu().numpy()
             
-            output_image =  ((output_image - np.min(output_image)) / (np.max(output_image) - np.min(output_image)) * 255).astype(np.uint8)
+            # output_image =  ((output_image - np.min(output_image)) / (np.max(output_image) - np.min(output_image)) * 255).astype(np.uint8)
 
-            output_image = cv2.cvtColor(output_image, cv2.COLOR_GRAY2BGR)
+            # output_image = cv2.cvtColor(output_image, cv2.COLOR_GRAY2BGR)
 
             # Show images
-            plt.subplot(121), plt.imshow(color_image), plt.title('Input Image')
-            plt.subplot(122), plt.imshow(output_image), plt.title('Output Image')
+            plt.subplot(131), plt.imshow(cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)), plt.title('Input Image')
+            plt.subplot(132), plt.imshow(depth_image, cmap='gray'), plt.title('Realsense Depth Image')
+            plt.subplot(133), plt.imshow(output_image, cmap='gray'), plt.title('MiDaS Depth Image')
             plt.show() 
 
                         
             # creates pointcloud from rs depth and color images
-            pcd = image_and_depth_to_poincloud(input_image, output_image, depth_image)
-            
+            pcd = image_and_depth_to_poincloud(input_image, depth_image, color_intrinsic)
+
             o3d.visualization.draw_geometries([pcd],
-                                    zoom=0.7,
-                                    front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
-                                    lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],
-                                    up=[0.021547212598669211, -0.99665598837361413, 0.078819784751307076],
+                                    window_name = 'Realsense Pointcloud',
+                                    zoom=0.25,
+                                    front=[ 0.042882783014263515, 0.34224346163446689, -0.93863223889306557 ],
+                                    lookat=[ 0.32209703152893004, 0.015038716775138822, 0.5229317858260436 ],
+                                    up=[ -0.0079988736549778065, -0.93934875012201546, -0.34287015569229556 ],
                                     width = 1080,
                                     height = 720)
 
             # creates pointcloud from MiDaS depth and color images
-            pcd = image_and_depth_to_poincloud(input_image, output_image, intrinsic)
+            pcd = image_and_depth_to_poincloud(input_image, output_image, color_intrinsic)
 
             o3d.visualization.draw_geometries([pcd],
+                    window_name = 'MiDaS Pointcloud',
                     zoom=0.7,
                     front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
                     lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],

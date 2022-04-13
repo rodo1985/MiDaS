@@ -67,7 +67,7 @@ def main():
             # if key is pressed
             if key & 0xFF == ord('s'):
                 # write images
-                cv2.imwrite('calibration_images/input_image' + str(acc).zfill(3) + '.png', color_image)
+                cv2.imwrite('calibration_images/input_image' + str(acc).zfill(3) + '.jpg', color_image)
                 acc+=1
             elif key & 0xFF == ord('q'):
                 break

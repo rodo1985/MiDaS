@@ -9,7 +9,7 @@ import tqdm
 def calibrate_camera(path):
 
     # Defining the dimensions of checkerboard
-    CHECKERBOARD = (19,12)
+    CHECKERBOARD = (17,11)
     checker_widht_in_meters = 15
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -25,7 +25,7 @@ def calibrate_camera(path):
     imgpoints = [] # 2d points in image plane.
 
     # Make a list of calibration images
-    images = [f for f in os.listdir(path) if f.endswith('.png')]
+    images = [f for f in os.listdir(path) if f.endswith('.jpg')]
 
     # start progress bar
     pbar = tqdm.tqdm(total=len(images))
@@ -52,10 +52,10 @@ def calibrate_camera(path):
             objpoints.append(objp)
             imgpoints.append(corners2)
 
-            # Draw and display the corners
-            cv2.drawChessboardCorners(img, CHECKERBOARD, corners2, ret)
-            plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            plt.show()
+            # # Draw and display the corners
+            # cv2.drawChessboardCorners(img, CHECKERBOARD, corners2, ret)
+            # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            # plt.show()
         
         # update progress bar
         pbar.update(1)
@@ -158,7 +158,7 @@ mtx, dist, criteria, objp, CHECKERBOARD = calibrate_camera('calibration_images')
 
 print(mtx, dist)
 
-undistortion_image = undistortion(cv2.imread('calibration_images/input_image001.png'), mtx, dist)
+undistortion_image = undistortion(cv2.imread('calibration_images/input_image001.jpg'), mtx, dist)
 
 plt.imshow(undistortion_image)
 plt.show()

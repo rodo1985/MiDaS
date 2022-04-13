@@ -5,6 +5,7 @@ import os
 import time
 import open3d as o3d
 
+
 def main():
     # MiDaS v3 - Large     (highest accuracy, slowest inference speed)
     model_type = "DPT_Large"
