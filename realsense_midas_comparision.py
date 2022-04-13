@@ -7,6 +7,23 @@ import torch
 import open3d as o3d
 
 
+def image_and_depth_to_poincloud(input_image, depth_image, intrinsic):
+    """
+    Converts an image and depth image to a pointcloud.
+    @parameters:
+        param input_image: The input image.
+        param depth_image: The depth image.
+        param intrinsic: The intrinsic matrix of the camera.
+    return: A pointcloud.
+    """
+
+    image_o3d = o3d.geometry.Image(input_image)
+    depth_o3d = o3d.geometry.Image(depth_image)
+    rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(image_o3d, depth_o3d, convert_rgb_to_intensity=False)
+
+    return o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
+
+
 def main():
 
     # Configure depth and color streams
@@ -91,26 +108,9 @@ def main():
             plt.subplot(122), plt.imshow(output_image), plt.title('Output Image')
             plt.show() 
 
-            image_o3d = o3d.geometry.Image(input_image)
-            depth_o3d = o3d.geometry.Image(output_image)
-            rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(image_o3d, depth_o3d, convert_rgb_to_intensity=False)
-
-            pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
-
-            o3d.visualization.draw_geometries([pcd],
-                                    zoom=0.7,
-                                    front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
-                                    lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],
-                                    up=[0.021547212598669211, -0.99665598837361413, 0.078819784751307076],
-                                    width = 1080,
-                                    height = 720)
-
-
-            image_o3d = o3d.geometry.Image(input_image)
-            depth_o3d = o3d.geometry.Image(depth_image)
-            rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(image_o3d, depth_o3d, convert_rgb_to_intensity=False)
-
-            pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic)
+                        
+            # creates pointcloud from rs depth and color images
+            pcd = image_and_depth_to_poincloud(input_image, output_image, depth_image)
             
             o3d.visualization.draw_geometries([pcd],
                                     zoom=0.7,
@@ -119,6 +119,17 @@ def main():
                                     up=[0.021547212598669211, -0.99665598837361413, 0.078819784751307076],
                                     width = 1080,
                                     height = 720)
+
+            # creates pointcloud from MiDaS depth and color images
+            pcd = image_and_depth_to_poincloud(input_image, output_image, intrinsic)
+
+            o3d.visualization.draw_geometries([pcd],
+                    zoom=0.7,
+                    front=[ 0.29793294460704028, 0.081657225153760046, 0.95108782880340059],
+                    lookat=[-6.2407929896882803e-05, 0.00012044991775293291, 0.00049506709056452449],
+                    up=[0.021547212598669211, -0.99665598837361413, 0.078819784751307076],
+                    width = 1080,
+                    height = 720)
 
             # # Show images
             # plt.subplot(131), plt.imshow(color_image), plt.title('Input Image')
