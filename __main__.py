@@ -1,4 +1,6 @@
+from tkinter import W
 import cv2
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import os
@@ -50,10 +52,19 @@ def main():
 
             output_image = prediction.cpu().numpy()
 
-            print("Time taken: ", time.time() - start_time)
+            output_image =  ((output_image - np.min(output_image)) / (np.max(output_image) - np.min(output_image)) * 255).astype(np.uint8)
 
-            plt.subplot(121), plt.imshow(input_image)
-            plt.subplot(122), plt.imshow(output_image)
+            # binarize image otsu
+            output_image = cv2.threshold(output_image, 90, 255, cv2.THRESH_BINARY)[1]
+
+            # add input image with output image
+            weighted_image = cv2.bitwise_and(input_image, input_image, mask= output_image)
+
+            print("--- %s seconds ---" % (time.time() - start_time))
+
+            plt.subplot(131), plt.imshow(input_image)
+            plt.subplot(132), plt.imshow(output_image)
+            plt.subplot(133), plt.imshow(weighted_image)
             plt.show()
 
 
