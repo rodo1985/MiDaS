@@ -1,10 +1,10 @@
-from turtle import width
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 import pyrealsense2 as rs
 import torch
 import open3d as o3d
+import time
 
 
 def image_and_depth_to_poincloud(input_image, depth_image, intrinsic):
@@ -54,8 +54,8 @@ def main():
 
     # MiDaS v3 - Large     (highest accuracy, slowest inference speed)
     model_type = "DPT_Large"
-    # model_type = "DPT_Hybrid"   # MiDaS v3 - Hybrid    (medium accuracy, medium inference speed)
-    # model_type = "MiDaS_small"  # MiDaS v2.1 - Small   (lowest accuracy, highest inference speed)
+    model_type = "DPT_Hybrid"   # MiDaS v3 - Hybrid    (medium accuracy, medium inference speed)
+    model_type = "MiDaS_small"  # MiDaS v2.1 - Small   (lowest accuracy, highest inference speed)
 
     # load model
     midas = torch.hub.load("intel-isl/MiDaS", model_type)
@@ -97,10 +97,15 @@ def main():
             depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
             input_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
+            
+            start_time = time.time()
 
             input_batch = transform(input_image).to(device)
 
+            
+
             with torch.no_grad():
+
                 prediction = midas(input_batch)
 
                 prediction = torch.nn.functional.interpolate(
@@ -112,14 +117,16 @@ def main():
 
             output_image = prediction.cpu().numpy()
             
+            print("--- %s seconds ---" % (time.time() - start_time))
+            
             # output_image =  ((output_image - np.min(output_image)) / (np.max(output_image) - np.min(output_image)) * 255).astype(np.uint8)
 
             # output_image = cv2.cvtColor(output_image, cv2.COLOR_GRAY2BGR)
 
             # Show images
             plt.subplot(131), plt.imshow(cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)), plt.title('Input Image')
-            plt.subplot(132), plt.imshow(depth_image, cmap='gray'), plt.title('Realsense Depth Image')
-            plt.subplot(133), plt.imshow(output_image, cmap='gray'), plt.title('MiDaS Depth Image')
+            plt.subplot(132), plt.imshow(output_image, cmap='gray'), plt.title('MiDaS Depth Image')
+            plt.subplot(133), plt.imshow(depth_image, cmap='gray'), plt.title('Realsense Depth Image')
             plt.show() 
 
                         
